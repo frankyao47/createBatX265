@@ -3,83 +3,155 @@
 import os
 import time
 
-def writeCmd(f, curTime, yuvFile, res, fps):
-	filename = os.path.splitext(os.path.split(yuvFile)[1])[0]
-	dirname = curTime + os.path.sep + filename
-	f.write('mkdir %s\n' %dirname)
+######################################################################################
+#####	open file logic
+#####
+######################################################################################
+def getParam(sentence):
+	return sentence.split('#')[0].strip()
 
-	# presetList = ['ultrafast', 'medium', 'placebo']
-	presetList = ['medium']
-	qpList = ['22', '27', '32', '37']
-	versionList = ['v1']
-	iFrameFlag = 1 # 1 implies intra only
-	frameNumbers = 0 # 0 implies all frames
+def addHyphen(key):
+	return len(key) == 1 and ('-' + key) or ('--' + key)
 
-	sep = os.path.sep
-	for preset in presetList:
-		for qp in qpList:
-			for version in versionList:
-				outputFile = preset + '_' + qp + '_' + version + '.265' ##output filename
-				csvFile = 'result_' + filename + '.csv'
-			
-				#### cmd
-				f.write('x265.exe -o %(dirname)s%(sep)s%(outputFile)s --input %(yuvFile)s --input-res %(res)s --fps %(fps)s \
---csv %(dirname)s%(sep)s%(csvFile)s -q %(qp)s --preset %(preset)s -i %(iFrameFlag)s -f %(frameNumbers)s --myversion %(version)s\n' %locals())
-	f.write('\n')
-
-
-def searchYuvFile(path):
-    files = os.listdir(path)
-    yuvFiles = []
-
-    for file in files:
-        if os.path.isdir(os.path.join(path, file)):
-            yuvFiles.extend(searchYuvFile(os.path.join(path, file)))
-        elif os.path.splitext(file)[1] == '.yuv':
-        	yuvFiles.append(os.path.join(path, file))
-        else:
-        	pass
-
-    return yuvFiles
-
-def getYuvFileList(dirFilename):
-	f = open(dirFilename, 'r')
-	searchList = f.readlines() #dir and file list
+def openInputFile(inputFile, isParamFile):
+	f = open(inputFile, 'r')
+	strsList = f.readlines()
+	paramList = [getParam(strs) for strs in strsList if getParam(strs)]
 	f.close()
 
-	searchList = [dir for dir in searchList if dir[0] != '#' and not dir.isspace()] #ignore comment
-	searchList = [dir.replace('\n','') for dir in searchList] #remove \n
-	yuvFiles = []
+	keyList = []
+	valueList = []
+	for param in paramList:
+		key = param.split('=')[0].strip()
+		if isParamFile:
+			key = addHyphen(key)
+		valueStrList = param.split('=')[1].split(',')
+		value = [value.strip() for value in valueStrList if value.strip()]
+		# print valueList
+		keyList.append(key) 
+		valueList.append(value)
+	return (keyList, valueList)
+
+######################################################################################
+#####	check validity logic
+#####
+######################################################################################
+def checkInputValidity(optionKeyList):
+	if not ('x265Directory' in optionKeyList and 'yuvFileDirectory' in optionKeyList and 'shutdown' in optionKeyList):
+		raise Exception('Not enough options is provided, please check!')
+
+
+######################################################################################
+#####	get yuv files logic
+#####
+######################################################################################
+def getYuvFileList(path):
+	files = os.listdir(path)
+	# print files
+	yuvFileList = []	
+	for f in files:
+		if os.path.isdir(os.path.join(path, f)):
+			yuvFileList.extend(getYuvFileList(os.path.join(path, f)))
+		elif os.path.isfile(os.path.join(path, f)): 
+			if os.path.splitext(f)[1] == '.yuv':
+				yuvFileList.append(os.path.join(path, f))
+			else:
+				pass
+		else:
+			pass
+	# print yuvFilesList
+	return yuvFileList
+
+def searchYuvFile(dirList):
+	yuvFileList = []
 	#print '\n'.join(searchList)
-	for i in searchList:
-		yuvFiles.extend(searchYuvFile(i))
+	for i in dirList:
+		yuvFileList.extend(getYuvFileList(i))
 
 	noDupes = []
-	[noDupes.append(i) for i in yuvFiles if not noDupes.count(i)] # remove dupes
-
+	[noDupes.append(i) for i in yuvFileList if not noDupes.count(i)] # remove dupes
 	return noDupes
 
+
+######################################################################################
+#####	write cmd logic
+#####
+######################################################################################
 def getResFps(yuvFile):
 	filename = os.path.splitext(os.path.split(yuvFile)[1])[0]
 	(image, res, fps) = filename.split('_')
 	#print res, fps
-	return [res, fps]
+	return (res, fps)
 
-def main():
-	yuvFileList = getYuvFileList('searchList.txt')
-	f = open('autorun.bat', 'w')
+def cmdRecursion(f, cmd, curResultDir, outputFile, paramKeyList, paramValueList, index):
+	if index == len(paramKeyList):
+		curCmd = cmd[:]
+		curOutputFile = outputFile[:]
 
+		sep = os.path.sep
+		curOutputFile.append('.265')
+		outputFileStr = ''.join(curOutputFile)
+		csvFile = 'result.csv'
+		curCmd.append('-o %(curResultDir)s%(sep)s%(outputFileStr)s' %locals())
+		curCmd.append('--csv %(curResultDir)s%(sep)s%(csvFile)s' %locals())
+		f.write(' '.join(curCmd) + '\n')
+	else:
+		key = paramKeyList[index] #traverse list
+		for value in paramValueList[index]:
+			curOutputFile = outputFile[:]
+
+			if len(paramValueList[index]) > 1:
+				curOutputFile.append('_%(value)s' %locals())
+			curCmd = cmd[:]
+			curCmd.append('%(key)s %(value)s' %locals())
+			cmdRecursion(f, curCmd, curResultDir, curOutputFile, paramKeyList, paramValueList, index+1)
+
+
+def writeSubCmd(f, resultDir, yuvFile, paramKeyList, paramValueList):
+	(res, fps) = getResFps(yuvFile)
+	filename = os.path.splitext(os.path.split(yuvFile)[1])[0]
+	curResultDir = resultDir + os.path.sep + filename
+
+	f.write('mkdir %s\n' %curResultDir)
+	cmd = ['x265.exe']
+	cmd.append('--input %(yuvFile)s' %locals())
+	cmd.append('--input-res %(res)s' %locals())
+	cmd.append('--fps %(fps)s' %locals())
+	cmdRecursion(f, cmd, curResultDir, ['out'], paramKeyList, paramValueList, 0)
+
+
+def writeCmd(outputFile, paramKeyList, paramValueList, optionKeyList, optionValueList):
+	f = open(outputFile, 'w')
+	sep = os.path.sep
 	curTime = time.strftime('%Y%m%d%H%M',time.localtime(time.time()))
-	f.write('mkdir %s\n' %curTime)
+	resultDir = os.getcwd() + sep + curTime
+	
+	f.write('mkdir %s\n' %resultDir)
 
-	#print '\n'.join(yuvFileList)
+	x265Directory = optionValueList[optionKeyList.index('x265Directory')][0]
+	f.write('cd /d %s\n\n' %x265Directory)
+	
+	yuvFileList = searchYuvFile(optionValueList[optionKeyList.index('yuvFileDirectory')])
 	for yuvFile in yuvFileList:
-		(res, fps) = getResFps(yuvFile)	
-		writeCmd(f, curTime,  yuvFile, res, fps)
+		writeSubCmd(f, resultDir, yuvFile, paramKeyList, paramValueList)
+		f.write('\n')
 
-	f.write("shutdown /s\n")
+	if(optionValueList[optionKeyList.index('shutdown')][0].lower() == 'on'):
+		f.write('shutdown /s\n')
 	f.close()
 
-if __name__ == '__main__':
-	main() 
+######################################################################################
+#####	main
+#####
+######################################################################################
+def main():
+	(paramKeyList, paramValueList) = openInputFile('param.txt', True)
+	(optionKeyList, optionValueList) = openInputFile('option.txt', False)
+	# print paramDict, optionDict
+	checkInputValidity(optionKeyList)
+	# print yuvFileList
+	outputFile = 'autorun.bat'
+	writeCmd(outputFile, paramKeyList, paramValueList, optionKeyList, optionValueList)
 
+if __name__ == '__main__':
+	main()
