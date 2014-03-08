@@ -46,19 +46,18 @@ def checkInputValidity(optionKeyList):
 #####
 ######################################################################################
 def getYuvFileList(path):
-	files = os.listdir(path)
-	# print files
-	yuvFileList = []	
-	for f in files:
-		if os.path.isdir(os.path.join(path, f)):
-			yuvFileList.extend(getYuvFileList(os.path.join(path, f)))
-		elif os.path.isfile(os.path.join(path, f)): 
-			if os.path.splitext(f)[1] == '.yuv':
+	yuvFileList = []
+	if os.path.isfile(path) and os.path.splitext(path)[1] == '.yuv':
+		yuvFileList.append(path)
+	elif os.path.isdir(path):
+		files = os.listdir(path)
+		for f in files:
+			if os.path.isdir(os.path.join(path, f)):
+				yuvFileList.extend(getYuvFileList(os.path.join(path, f)))
+			elif os.path.isfile(os.path.join(path, f)) and os.path.splitext(f)[1] == '.yuv':
 				yuvFileList.append(os.path.join(path, f))
 			else:
 				pass
-		else:
-			pass
 	# print yuvFilesList
 	return yuvFileList
 
@@ -90,8 +89,9 @@ def cmdRecursion(f, cmd, curResultDir, outputFile, paramKeyList, paramValueList,
 
 		sep = os.path.sep
 		curOutputFile.append('.265')
+		csvFile = curOutputFile[0] + '.csv'
 		outputFileStr = ''.join(curOutputFile)
-		csvFile = 'result.csv'
+		
 		curCmd.append('-o %(curResultDir)s%(sep)s%(outputFileStr)s' %locals())
 		curCmd.append('--csv %(curResultDir)s%(sep)s%(csvFile)s' %locals())
 		f.write(' '.join(curCmd) + '\n')
@@ -117,7 +117,7 @@ def writeSubCmd(f, resultDir, yuvFile, paramKeyList, paramValueList):
 	cmd.append('--input %(yuvFile)s' %locals())
 	cmd.append('--input-res %(res)s' %locals())
 	cmd.append('--fps %(fps)s' %locals())
-	cmdRecursion(f, cmd, curResultDir, ['out'], paramKeyList, paramValueList, 0)
+	cmdRecursion(f, cmd, curResultDir, [filename.split('_')[0]], paramKeyList, paramValueList, 0)
 
 
 def writeCmd(outputFile, paramKeyList, paramValueList, optionKeyList, optionValueList):
