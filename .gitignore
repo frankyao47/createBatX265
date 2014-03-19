@@ -1,5 +1,7 @@
-*.txt
 *.bat
+
 *.rar
 *.zip
+
+*/
 *.ico

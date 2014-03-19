@@ -1,0 +1,12 @@
+#options
+#这里面的内容都是必须进行赋值的参数，意义参见注释，用法与param.txt相同
+#所有路径中不要包含空格，尽量不要包含中文字符，可能会产生错误
+
+#x265.exe所在目录
+x265Directory = D:\x265_source\build\vc10-x86_64\Release
+
+#yuv文件目录所在位置,可以为单个或者多个目录/文件名		
+yuvFileDirectory = D:\Video\720, D:\Video\1080\BasketballDrive_1920x1080_25.yuv
+
+#执行结束后是否关闭计算机(on/off)			
+shutdown = off												
