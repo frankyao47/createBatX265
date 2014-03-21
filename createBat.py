@@ -11,7 +11,7 @@ def getParam(sentence):
 	return sentence.split('#')[0].strip()
 
 def addHyphen(key):
-	return len(key) == 1 and ('-' + key) or ('--' + key)
+	return ('-' + key) if len(key) == 1 else ('--' + key)
 
 def openInputFile(inputFile, isParamFile):
 	'''
@@ -21,7 +21,7 @@ def openInputFile(inputFile, isParamFile):
 	'''
 	f = open(inputFile, 'r')
 	strsList = f.readlines()
-	paramList = [getParam(strs) for strs in strsList if getParam(strs)]
+	paramList = [getParam(strs) for strs in strsList if getParam(strs)] #remove blank lines & comments
 	f.close()
 
 	keyList = []
@@ -32,15 +32,13 @@ def openInputFile(inputFile, isParamFile):
 		if isParamFile:
 			key = addHyphen(key)
 
-		if len(paramPair) == 1:
-			value = []    ##if the param has no arguments, an empty list is marked
-		else:
-			valueStrList = paramPair[1].split(',')
-			value = [value.strip() for value in valueStrList if value.strip()]
+		valueStrList = paramPair[1].split(',')
+		value = [value.strip() for value in valueStrList if value.strip()]
 		# print valueList
 		keyList.append(key) 
 		valueList.append(value)
-	return (keyList, valueList)
+	return keyList, valueList #key: str; value: list([] if no arguments)
+
 
 ######################################################################################
 #####	check validity logic
@@ -123,19 +121,13 @@ def cmdRecursion(f, cmd, curResultDir, outputFile, paramKeyList, paramValueList,
 	else:
 		key = paramKeyList[index] #traverse list
 		if paramValueList[index] == []: ###params with no arguments
-			curOutputFile = outputFile[:]
-			curCmd = cmd[:]
-			curCmd.append('%(key)s' %locals())
-			cmdRecursion(f, curCmd, curResultDir, curOutputFile, paramKeyList, paramValueList, index+1)
+			cmdRecursion(f, cmd + ['%(key)s' %locals()], curResultDir, outputFile, paramKeyList, paramValueList, index+1)
 
 		for value in paramValueList[index]:
-			curOutputFile = outputFile[:]
-
-			if len(paramValueList[index]) > 1:
-				curOutputFile.append('_%(value)s' %locals())
-			curCmd = cmd[:]
-			curCmd.append('%(key)s %(value)s' %locals())
-			cmdRecursion(f, curCmd, curResultDir, curOutputFile, paramKeyList, paramValueList, index+1)
+			if len(paramValueList[index]) > 1: #the 265 file should be named differently due to different params
+				cmdRecursion(f, cmd + ['%(key)s %(value)s' %locals()], curResultDir, outputFile + ['_%(value)s' %locals()], paramKeyList, paramValueList, index+1)
+			else:
+				cmdRecursion(f, cmd + ['%(key)s %(value)s' %locals()], curResultDir, outputFile, paramKeyList, paramValueList, index+1)
 
 
 def writeSubCmd(f, resultDir, yuvFile, paramKeyList, paramValueList):
@@ -157,14 +149,15 @@ def writeCmd(outputFile, paramKeyList, paramValueList, optionKeyList, optionValu
 	f = open(outputFile, 'w')
 	sep = os.path.sep
 	curTime = time.strftime('%Y%m%d%H%M',time.localtime(time.time()))
+	dirName = curTime
 
 	##adding test name, Chinese seems to be supported
 	if 'suffix' in optionKeyList:
-		suffix = optionValueList[optionKeyList.index('suffix')][0]
-		dirName = curTime + '_' + suffix
-	else:
-		dirName = curTime
-	resultDir = os.getcwd() + sep + dirName
+		suffix = optionValueList[optionKeyList.index('suffix')]
+		if suffix:
+			dirName = dirName + '_' + suffix[0]
+		
+	resultDir = os.getcwd() + sep + dirName #result directory name(full path)
 	
 	f.write('mkdir %s\n' %resultDir)
 
@@ -180,6 +173,7 @@ def writeCmd(outputFile, paramKeyList, paramValueList, optionKeyList, optionValu
 		f.write('shutdown /s\n')
 	f.close()
 
+
 ######################################################################################
 #####	main
 #####
@@ -187,9 +181,9 @@ def writeCmd(outputFile, paramKeyList, paramValueList, optionKeyList, optionValu
 def main():
 	(paramKeyList, paramValueList) = openInputFile('param.txt', True)
 	(optionKeyList, optionValueList) = openInputFile('option.txt', False)
-	# print paramDict, optionDict
-	checkInputValidity(optionKeyList)
-	# print yuvFileList
+
+	checkInputValidity(optionKeyList) #check option params
+
 	outputFile = 'autorun.bat'
 	writeCmd(outputFile, paramKeyList, paramValueList, optionKeyList, optionValueList)
 
