@@ -32,8 +32,11 @@ def openInputFile(inputFile, isParamFile):
 		if isParamFile:
 			key = addHyphen(key)
 
-		valueStrList = paramPair[1].split(',')
-		value = [value.strip() for value in valueStrList if value.strip()]
+		if len(paramPair) == 1:
+			value = []
+		else:
+			valueStrList = paramPair[1].split(',')
+			value = [value.strip() for value in valueStrList if value.strip()]
 		# print valueList
 		keyList.append(key) 
 		valueList.append(value)
