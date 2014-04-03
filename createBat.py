@@ -108,32 +108,35 @@ def getInfoFromFilename(yuvFileWithPath):
 		bitdepth = 8
 	return res, fps, bitdepth
 
-def cmdRecursion(f, cmd, curResultDir, outputFile, paramKeyList, paramValueList, index):
+def cmdRecursion(f, cmd, curResultDir, outputFile, paramKeyList, paramValueList, optionKeyList, optionValueList, index):
 	if index == len(paramKeyList):
 		curCmd = cmd[:]
-		curOutputFile = outputFile[:]
 
 		sep = os.path.sep
-		curOutputFile.append('.265')
-		csvFile = curOutputFile[0] + '.csv'
-		outputFileStr = ''.join(curOutputFile)
-		
-		curCmd.append('-o %(curResultDir)s%(sep)s%(outputFileStr)s' %locals())
-		curCmd.append('--csv %(curResultDir)s%(sep)s%(csvFile)s' %locals())
+		csvFileName = outputFile[0] + '.csv'
+		outputFileName = ''.join(outputFile) + '.265'
+
+		curCmd.append('-o %(curResultDir)s%(sep)s%(outputFileName)s' %locals())
+		curCmd.append('--csv %(curResultDir)s%(sep)s%(csvFileName)s' %locals())
+
+		if 'saveOutput' in optionKeyList:
+			logFileName = ''.join(outputFile) + '.log'
+			curCmd.append('>> %(curResultDir)s%(sep)s%(logFileName)s' %locals())
+
 		f.write(' '.join(curCmd) + '\n')
 	else:
 		key = paramKeyList[index] #traverse list
 		if paramValueList[index] == []: ###params with no arguments
-			cmdRecursion(f, cmd + ['%(key)s' %locals()], curResultDir, outputFile, paramKeyList, paramValueList, index+1)
+			cmdRecursion(f, cmd + ['%(key)s' %locals()], curResultDir, outputFile, paramKeyList, paramValueList, optionKeyList, optionValueList, index+1)
 
 		for value in paramValueList[index]:
 			if len(paramValueList[index]) > 1: #the 265 file should be named differently due to different params
-				cmdRecursion(f, cmd + ['%(key)s %(value)s' %locals()], curResultDir, outputFile + ['_%(value)s' %locals()], paramKeyList, paramValueList, index+1)
+				cmdRecursion(f, cmd + ['%(key)s %(value)s' %locals()], curResultDir, outputFile + ['_%(value)s' %locals()], paramKeyList, paramValueList, optionKeyList, optionValueList, index+1)
 			else:
-				cmdRecursion(f, cmd + ['%(key)s %(value)s' %locals()], curResultDir, outputFile, paramKeyList, paramValueList, index+1)
+				cmdRecursion(f, cmd + ['%(key)s %(value)s' %locals()], curResultDir, outputFile, paramKeyList, paramValueList, optionKeyList, optionValueList, index+1)
 
 
-def writeSubCmd(f, resultDir, yuvFile, paramKeyList, paramValueList):
+def writeSubCmd(f, resultDir, yuvFile, paramKeyList, paramValueList, optionKeyList, optionValueList):
 	(res, fps, bitdepth) = getInfoFromFilename(yuvFile)
 	filename = os.path.splitext(os.path.split(yuvFile)[1])[0]
 	curResultDir = resultDir + os.path.sep + filename
@@ -145,7 +148,7 @@ def writeSubCmd(f, resultDir, yuvFile, paramKeyList, paramValueList):
 	cmd.append('--fps %(fps)s' %locals())
 	if bitdepth != 8:
 		cmd.append('--input-depth %(bitdepth)s' %locals())
-	cmdRecursion(f, cmd, curResultDir, [filename.split('_')[0]], paramKeyList, paramValueList, 0)
+	cmdRecursion(f, cmd, curResultDir, [filename.split('_')[0]], paramKeyList, paramValueList, optionKeyList, optionValueList, 0)
 
 
 def writeCmd(outputFile, paramKeyList, paramValueList, optionKeyList, optionValueList):
@@ -169,7 +172,7 @@ def writeCmd(outputFile, paramKeyList, paramValueList, optionKeyList, optionValu
 	
 	yuvFileList = searchYuvFile(optionValueList[optionKeyList.index('yuvFileDirectory')])
 	for yuvFile in yuvFileList:
-		writeSubCmd(f, resultDir, yuvFile, paramKeyList, paramValueList)
+		writeSubCmd(f, resultDir, yuvFile, paramKeyList, paramValueList, optionKeyList, optionValueList)
 		f.write('\n')
 
 	if(optionValueList[optionKeyList.index('shutdown')][0].lower() == 'on'):
