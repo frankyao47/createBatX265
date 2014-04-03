@@ -175,7 +175,7 @@ def writeCmd(outputFile, paramKeyList, paramValueList, optionKeyList, optionValu
 		writeSubCmd(f, resultDir, yuvFile, paramKeyList, paramValueList, optionKeyList, optionValueList)
 		f.write('\n')
 
-	if(optionValueList[optionKeyList.index('shutdown')][0].lower() == 'on'):
+	if optionValueList[optionKeyList.index('shutdown')][0].lower() == 'on':
 		f.write('shutdown /s\n')
 	f.close()
 
@@ -192,6 +192,9 @@ def main():
 
 	outputFile = 'autorun.bat'
 	writeCmd(outputFile, paramKeyList, paramValueList, optionKeyList, optionValueList)
+	if optionValueList[optionKeyList.index('shutdown')][0].lower() == 'on':
+		print 'Notice: You choose to shutdown after finishing the test.'
+		os.system('pause')
 
 if __name__ == '__main__':
 	main()
