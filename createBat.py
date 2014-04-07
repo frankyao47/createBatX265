@@ -2,6 +2,7 @@
 
 import os
 import time
+import platform
 
 ######################################################################################
 #####	open file logic
@@ -142,7 +143,10 @@ def writeSubCmd(f, resultDir, yuvFile, paramKeyList, paramValueList, optionKeyLi
 	curResultDir = resultDir + os.path.sep + filename
 
 	f.write('mkdir %s\n' %curResultDir)
-	cmd = ['x265.exe']
+	if platform.system() == 'Windows':
+		cmd = ['x265.exe']
+	else:
+		cmd = ['./x265']
 	cmd.append('--input %(yuvFile)s' %locals())
 	cmd.append('--input-res %(res)s' %locals())
 	cmd.append('--fps %(fps)s' %locals())
@@ -164,11 +168,16 @@ def writeCmd(outputFile, paramKeyList, paramValueList, optionKeyList, optionValu
 			dirName = dirName + '_' + suffix[0]
 		
 	resultDir = os.getcwd() + sep + dirName #result directory name(full path)
-	
+	if platform.system() != 'Windows':
+		f.write('#!/usr/bin/env bash\n')	
+
 	f.write('mkdir %s\n' %resultDir)
 
 	x265Directory = optionValueList[optionKeyList.index('x265Directory')][0]
-	f.write('cd /d %s\n\n' %x265Directory)
+	if platform.system() == 'Windows':
+		f.write('cd /d %s\n\n' %x265Directory)
+	else:
+		f.write('cd %s\n\n' %x265Directory)
 	
 	yuvFileList = searchYuvFile(optionValueList[optionKeyList.index('yuvFileDirectory')])
 	for yuvFile in yuvFileList:
@@ -176,7 +185,10 @@ def writeCmd(outputFile, paramKeyList, paramValueList, optionKeyList, optionValu
 		f.write('\n')
 
 	if optionValueList[optionKeyList.index('shutdown')][0].lower() == 'on':
-		f.write('shutdown /s\n')
+		if platform.system() == 'Windows':
+			f.write('shutdown /s\n')
+		else:
+			f.write('shutdown -h now\n')
 	f.close()
 
 
@@ -189,12 +201,19 @@ def main():
 	(optionKeyList, optionValueList) = openInputFile('option.txt', False)
 
 	checkInputValidity(optionKeyList) #check option params
-
-	outputFile = 'autorun.bat'
+	
+	if platform.system() == 'Windows':
+		outputFile = 'autorun.bat'
+	else:
+		outputFile = 'autorun.bash'
+		os.system('touch %(outputFile)s' %locals())
+		os.system('chmod u+x %(outputFile)s' %locals())		
+		
 	writeCmd(outputFile, paramKeyList, paramValueList, optionKeyList, optionValueList)
 	if optionValueList[optionKeyList.index('shutdown')][0].lower() == 'on':
 		print 'Notice: You choose to shutdown after finishing the test.'
-		os.system('pause')
+		if platform.system() == 'Windows':
+			os.system('pause')
 
 if __name__ == '__main__':
 	main()
