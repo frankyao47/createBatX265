@@ -119,7 +119,7 @@ def cmdRecursion(f, cmd, curResultDir, outputFile, paramKeyList, paramValueList,
 		curCmd.append('-o %(curResultDir)s%(sep)s%(outputFileName)s' %locals())
 		curCmd.append('--csv %(curResultDir)s%(sep)s%(csvFileName)s' %locals())
 
-		if 'saveOutput' in optionKeyList:
+		if 'saveOutput' in optionKeyList and optionValueList[optionKeyList.index('saveOutput')][0].lower() == 'on':
 			logFileName = ''.join(outputFile) + '.log'
 			curCmd.append('>> %(curResultDir)s%(sep)s%(logFileName)s' %locals())
 
