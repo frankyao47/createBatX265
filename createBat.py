@@ -120,9 +120,16 @@ def cmdRecursion(f, cmd, curResultDir, outputFile, paramKeyList, paramValueList,
 		curCmd.append('-o %(curResultDir)s%(sep)s%(outputFileName)s' %locals())
 		curCmd.append('--csv %(curResultDir)s%(sep)s%(csvFileName)s' %locals())
 
-		if 'saveOutput' in optionKeyList and optionValueList[optionKeyList.index('saveOutput')][0].lower() == 'on':
+		if 'saveOutput' in optionKeyList and int(optionValueList[optionKeyList.index('saveOutput')][0]) > 0:
 			logFileName = ''.join(outputFile) + '.log'
-			curCmd.append('>> %(curResultDir)s%(sep)s%(logFileName)s' %locals())
+			status = int(optionValueList[optionKeyList.index('saveOutput')][0])
+			#1: stdout; 2: stderr; 3: both
+			if status == 1:
+				curCmd.append('1> %(curResultDir)s%(sep)s%(logFileName)s' %locals())
+			elif status == 2:
+				curCmd.append('2> %(curResultDir)s%(sep)s%(logFileName)s' %locals())
+			elif status == 3:
+				curCmd.append('1> %(curResultDir)s%(sep)s%(logFileName)s 2>&1' %locals())
 
 		f.write(' '.join(curCmd) + '\n')
 	else:
