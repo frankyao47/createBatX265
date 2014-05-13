@@ -29,9 +29,11 @@ def openInputFile(inputFile, isParamFile):
 	valueList = []
 	for param in paramList:
 		paramPair = param.split('=')
-		key = paramPair[0].strip()
+		keyStrList = paramPair[0].split(',')
+		key = [value.strip() for value in keyStrList if value.strip()]
+		#print key
 		if isParamFile:
-			key = addHyphen(key)
+			key = [addHyphen(singlekey) for singlekey in key]
 
 		if len(paramPair) == 1:
 			value = []
@@ -39,8 +41,13 @@ def openInputFile(inputFile, isParamFile):
 			valueStrList = paramPair[1].split(',')
 			value = [value.strip() for value in valueStrList if value.strip()]
 		# print valueList
-		keyList.append(key) 
+
+		if isParamFile:
+			keyList.append(key) #each param is list(sometimes more than one arguments)  e.g.:[['--yes', '--no'], ['--myversion'], ['--qp'], ['-f'], ['--psnr']]
+		else:
+			keyList.extend(key) #each param is str  e.g.:['x265Directory', 'yuvFileDirectory', 'shutdown', 'suffix', 'saveOutput']
 		valueList.append(value)
+
 	return keyList, valueList #key: str; value: list([] if no arguments)
 
 
@@ -120,6 +127,7 @@ def cmdRecursion(f, cmd, curResultDir, outputFile, paramKeyList, paramValueList,
 		curCmd.append('-o %(curResultDir)s%(sep)s%(outputFileName)s' %locals())
 		curCmd.append('--csv %(curResultDir)s%(sep)s%(csvFileName)s' %locals())
 
+		# stdout, stderr logic
 		if 'saveOutput' in optionKeyList and int(optionValueList[optionKeyList.index('saveOutput')][0]) > 0:
 			logFileName = ''.join(outputFile) + '.log'
 			status = int(optionValueList[optionKeyList.index('saveOutput')][0])
@@ -133,11 +141,16 @@ def cmdRecursion(f, cmd, curResultDir, outputFile, paramKeyList, paramValueList,
 
 		f.write(' '.join(curCmd) + '\n')
 	else:
-		key = paramKeyList[index] #traverse list
+		keyList = paramKeyList[index] #traverse list
 		if paramValueList[index] == []: ###params with no arguments
-			cmdRecursion(f, cmd + ['%(key)s' %locals()], curResultDir, outputFile, paramKeyList, paramValueList, optionKeyList, optionValueList, index+1)
+			for key in keyList:
+				if len(keyList) > 1:
+					cmdRecursion(f, cmd + ['%(key)s' %locals()], curResultDir, outputFile + ['_%(key)s' %locals()], paramKeyList, paramValueList, optionKeyList, optionValueList, index+1)
+				else:
+					cmdRecursion(f, cmd + ['%(key)s' %locals()], curResultDir, outputFile, paramKeyList, paramValueList, optionKeyList, optionValueList, index+1)
 
 		for value in paramValueList[index]:
+			key = keyList[0]
 			if len(paramValueList[index]) > 1: #the 265 file should be named differently due to different params
 				cmdRecursion(f, cmd + ['%(key)s %(value)s' %locals()], curResultDir, outputFile + ['_%(value)s' %locals()], paramKeyList, paramValueList, optionKeyList, optionValueList, index+1)
 			else:
