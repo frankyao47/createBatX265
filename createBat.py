@@ -56,7 +56,7 @@ def openInputFile(inputFile, isParamFile):
 #####
 ######################################################################################
 def checkInputValidity(optionKeyList):
-	options = ['x265Directory', 'yuvFileDirectory', 'shutdown']
+	options = ['EncoderDirectory', 'yuvFileDirectory']
 	for option in options:
 		if option not in optionKeyList:
 			raise Exception('Not enough options is provided, please check!')
@@ -193,22 +193,19 @@ def writeCmd(outputFile, paramKeyList, paramValueList, optionKeyList, optionValu
 
 	f.write('mkdir %s\n' %resultDir)
 
-	x265Directory = optionValueList[optionKeyList.index('x265Directory')][0]
+	x265Directory = optionValueList[optionKeyList.index('EncoderDirectory')][0]
 	if platform.system() == 'Windows':
 		f.write('cd /d %s\n\n' %x265Directory)
 	else:
 		f.write('cd %s\n\n' %x265Directory)
 	
 	yuvFileList = searchYuvFile(optionValueList[optionKeyList.index('yuvFileDirectory')])
+
+	#print yuvFileList
 	for yuvFile in yuvFileList:
 		writeSubCmd(f, resultDir, yuvFile, paramKeyList, paramValueList, optionKeyList, optionValueList)
 		f.write('\n')
 
-	if optionValueList[optionKeyList.index('shutdown')][0].lower() == 'on':
-		if platform.system() == 'Windows':
-			f.write('shutdown /s\n')
-		else:
-			f.write('shutdown -h now\n')
 	f.close()
 
 
@@ -230,10 +227,6 @@ def main():
 		os.system('chmod u+x %(outputFile)s' %locals())		
 		
 	writeCmd(outputFile, paramKeyList, paramValueList, optionKeyList, optionValueList)
-	if optionValueList[optionKeyList.index('shutdown')][0].lower() == 'on':
-		print 'Notice: You choose to shutdown after finishing the test.'
-		if platform.system() == 'Windows':
-			os.system('pause')
 
 if __name__ == '__main__':
 	main()
