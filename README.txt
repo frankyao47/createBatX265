@@ -1,42 +1,35 @@
-#####################################################################################################################
-包含文件: createBat.exe, option.txt, param.txt
+##################################################################################
+Files included: 
+createBat.py, option.txt, param.txt
 
+##################################################################################
+Functions: 
+Generating running scripts(.bat for win & .bash for linux) for x265 encoder, which will generate a document named after the System time and all results will be stored in the document.
 
-#####################################################################################################################
-功能: 自动生成x265运行的bat脚本，该脚本会在当前目录生成以当前系统时间命名(可添加内容)的文件夹，并将所有的结果存入该文件夹内
+##################################################################################
+Attention:
+1. Please check the script before you run it in case it doesn't meet your demond.
+2. Any bug report or function requirement is welcomed.
 
+##################################################################################
+Usage: 
+"param.txt" includes the x265 options you need
+    Options like "-o, --input, --input-res, --input-depth，--fps, --csv" will be automatically added.
 
-#####################################################################################################################
-注意:
-1，每次使用请重新生成脚本，以便更新生成的目录名(以系统时间命名)，防止生成错误
-2，在生成bat脚本后务必进行查看，程序还有很多不完善的地方，可能会有bug产生
-3，欢迎汇报bug
+"option.txt" includes some additonal options
+    EncoderDirectory: the absolute path of the x265 encoder 
+    yuvFileDirectory: the absolute path of the yuv videos / directories(The program will find all the yuv files in the directory recursively)
 
-#####################################################################################################################
-使用: 
-param.txt包含了你希望x265在运行时所包含的参数
-    其中-o, --input, --input-res, --input-depth， --fps, --csv选项因为与具体文件以及目录相关已经被提前强制指定，不能被额外添加
+e.g.
 
-option.txt包含了所有不属于x265运行参数的一些选项，其中x265Directory, yuvFileDirectory, shutdown参数必须被添加，其余为可选项
+Your encoder locates in A, all the yuv files are in B and C, and the x265 options you need are "--preset ultrafast/medium", "-q 22/27/32/37", "--psnr"
 
-具体的写法参见文件部分注释
+Then in "option.txt" you should write:
+EncoderDirectory = A	
+yuvFileDirectory = B, C
 
-示例:
-比如你的x265.exe文件的目录为A, 所希望检索的yuv文件目录为B和C，你希望在运行结束后关闭电脑
-x265运行的参数为
---preset ultrafast, medium
---qp 22, 27, 32, 37
--i 1
---psnr
-
-则在option.txt中的配置应该为:
-x265Directory = A		
-yuvFileDirectory = B, C			
-shutdown = on
-
-在param.txt中的配置应该为:
+In "option.txt" you should write:
 preset = ultrafast, medium
 qp = 22, 27, 32, 37
-i = 1
 psnr
 
