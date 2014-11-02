@@ -45,7 +45,7 @@ def openInputFile(inputFile, isParamFile):
 		if isParamFile:
 			keyList.append(key) #each param is list(sometimes more than one arguments)  e.g.:[['--yes', '--no'], ['--myversion'], ['--qp'], ['-f'], ['--psnr']]
 		else:
-			keyList.extend(key) #each param is str  e.g.:['x265Directory', 'yuvFileDirectory', 'shutdown', 'suffix', 'saveOutput']
+			keyList.extend(key) #each param is str  e.g.:['EncoderDirectory', 'yuvFileDirectory', 'shutdown', 'suffix', 'saveOutput']
 		valueList.append(value)
 
 	return keyList, valueList #key: str; value: list([] if no arguments)
@@ -157,21 +157,24 @@ def cmdRecursion(f, cmd, curResultDir, outputFile, paramKeyList, paramValueList,
 				cmdRecursion(f, cmd + ['%(key)s %(value)s' %locals()], curResultDir, outputFile, paramKeyList, paramValueList, optionKeyList, optionValueList, index+1)
 
 
-def writeSubCmd(f, resultDir, yuvFile, paramKeyList, paramValueList, optionKeyList, optionValueList):
+def writeSubCmd(f, resultDir, yuvFile, paramKeyList, paramValueList, optionKeyList, optionValueList, encodeName):
 	(res, fps, bitdepth) = getInfoFromFilename(yuvFile)
 	filename = os.path.splitext(os.path.split(yuvFile)[1])[0]
 	curResultDir = resultDir + os.path.sep + filename
 
 	f.write('mkdir %s\n' %curResultDir)
 	if platform.system() == 'Windows':
-		cmd = ['x265.exe']
+		cmd = [encodeName]
 	else:
-		cmd = ['./x265']
+		cmd = ['./' + encoderName]
+
+	#x265 input options#############################################
 	cmd.append('--input %(yuvFile)s' %locals())
 	cmd.append('--input-res %(res)s' %locals())
 	cmd.append('--fps %(fps)s' %locals())
 	if bitdepth != 8:
 		cmd.append('--input-depth %(bitdepth)s' %locals())
+	################################################################	
 	cmdRecursion(f, cmd, curResultDir, [filename.split('_')[0]], paramKeyList, paramValueList, optionKeyList, optionValueList, 0)
 
 
@@ -193,17 +196,17 @@ def writeCmd(outputFile, paramKeyList, paramValueList, optionKeyList, optionValu
 
 	f.write('mkdir %s\n' %resultDir)
 
-	x265Directory = optionValueList[optionKeyList.index('EncoderDirectory')][0]
+	EncoderDirectory = optionValueList[optionKeyList.index('EncoderDirectory')][0]
 	if platform.system() == 'Windows':
-		f.write('cd /d %s\n\n' %x265Directory)
+		f.write('cd /d %s\n\n' %os.path.dirname(EncoderDirectory))
 	else:
-		f.write('cd %s\n\n' %x265Directory)
+		f.write('cd %s\n\n' %os.path.dirname(EncoderDirectory))
 	
 	yuvFileList = searchYuvFile(optionValueList[optionKeyList.index('yuvFileDirectory')])
 
 	#print yuvFileList
 	for yuvFile in yuvFileList:
-		writeSubCmd(f, resultDir, yuvFile, paramKeyList, paramValueList, optionKeyList, optionValueList)
+		writeSubCmd(f, resultDir, yuvFile, paramKeyList, paramValueList, optionKeyList, optionValueList, os.path.basename(EncoderDirectory))
 		f.write('\n')
 
 	f.close()
