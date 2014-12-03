@@ -157,14 +157,18 @@ def cmdRecursion(f, cmd, curResultDir, outputFile, paramKeyList, paramValueList,
 				cmdRecursion(f, cmd + ['%(key)s %(value)s' %locals()], curResultDir, outputFile, paramKeyList, paramValueList, optionKeyList, optionValueList, index+1)
 
 
-def writeSubCmd(f, resultDir, yuvFile, paramKeyList, paramValueList, optionKeyList, optionValueList, encodeName):
+def writeSubCmd(f, resultDir, yuvFile, paramKeyList, paramValueList, optionKeyList, optionValueList, encoderName):
 	(res, fps, bitdepth) = getInfoFromFilename(yuvFile)
 	filename = os.path.splitext(os.path.split(yuvFile)[1])[0]
-	curResultDir = resultDir + os.path.sep + filename
 
-	f.write('mkdir %s\n' %curResultDir)
+	curResultDir = resultDir
+	if False:#todo: add option
+		curResultDir = resultDir + os.path.sep + filename
+		f.write('mkdir %s\n' %curResultDir)
+
+
 	if platform.system() == 'Windows':
-		cmd = [encodeName]
+		cmd = [encoderName]
 	else:
 		cmd = ['./' + encoderName]
 
@@ -185,10 +189,11 @@ def writeCmd(outputFile, paramKeyList, paramValueList, optionKeyList, optionValu
 	dirName = curTime
 
 	##adding test name, Chinese seems to be supported
+	suffix = ""
 	if 'suffix' in optionKeyList:
-		suffix = optionValueList[optionKeyList.index('suffix')]
+		suffix = optionValueList[optionKeyList.index('suffix')][0]
 		if suffix:
-			dirName = dirName + '_' + suffix[0]
+			dirName = dirName + '_' + suffix
 		
 	resultDir = os.getcwd() + sep + dirName #result directory name(full path)
 	if platform.system() != 'Windows':
